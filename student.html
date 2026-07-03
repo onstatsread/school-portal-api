@@ -1,0 +1,188 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Student Dashboard</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: 'Segoe UI', system-ui, sans-serif; background: #f0f2f5; }
+
+    .topbar {
+      background: linear-gradient(135deg, #1b5e20, #2e7d32);
+      color: #fff; padding: 14px 20px;
+      display: flex; align-items: center; justify-content: space-between;
+    }
+    .topbar h1 { font-size: 18px; }
+    .logout-btn { background: rgba(255,255,255,0.2); border: none; color: #fff;
+      padding: 6px 14px; border-radius: 6px; cursor: pointer; font-size: 13px; }
+
+    .nav-tabs { display: flex; background: #fff; border-bottom: 2px solid #e0e0e0;
+      overflow-x: auto; padding: 0 16px; }
+    .nav-tab { padding: 12px 18px; cursor: pointer; font-size: 14px; font-weight: 500;
+      color: #666; border-bottom: 3px solid transparent; white-space: nowrap; }
+    .nav-tab.active { color: #2e7d32; border-bottom-color: #2e7d32; }
+
+    .tab-content { display: none; padding: 20px; }
+    .tab-content.active { display: block; }
+
+    .card { background: #fff; border-radius: 12px; padding: 20px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.07); margin-bottom: 16px; }
+    .card h3 { font-size: 15px; margin-bottom: 14px; color: #1b5e20; }
+
+    .profile-row { display: flex; justify-content: space-between; padding: 8px 0;
+      border-bottom: 1px solid #f0f0f0; font-size: 14px; }
+    .profile-row:last-child { border-bottom: none; }
+    .profile-label { color: #888; }
+    .profile-value { font-weight: 600; }
+
+    .stat-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px; margin-bottom: 16px; }
+    .stat-card { background: #fff; border-radius: 12px; padding: 16px; text-align: center;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.07); }
+    .stat-num { font-size: 28px; font-weight: 700; color: #2e7d32; }
+    .stat-label { font-size: 12px; color: #888; margin-top: 4px; }
+
+    select, input { width: 100%; padding: 10px 12px; border: 1.5px solid #ddd;
+      border-radius: 8px; font-size: 14px; margin-bottom: 10px; background: #fafafa; }
+    .btn { background: linear-gradient(135deg, #1b5e20, #2e7d32); color: #fff; border: none;
+      padding: 10px 20px; border-radius: 8px; font-size: 14px; font-weight: 600;
+      cursor: pointer; width: 100%; margin-top: 4px; }
+
+    table { width: 100%; border-collapse: collapse; font-size: 13px; }
+    th { text-align: left; padding: 8px 10px; background: #e8f5e9; color: #1b5e20; font-weight: 600; }
+    td { padding: 8px 10px; border-bottom: 1px solid #f0f0f0; }
+
+    .badge { padding: 3px 8px; border-radius: 12px; font-size: 11px; font-weight: 600; }
+    .badge.present { background: #e8f5e9; color: #2e7d32; }
+    .badge.absent  { background: #ffebee; color: #c62828; }
+    .badge.late    { background: #fff8e1; color: #f57f17; }
+
+    .grade-A1 { color: #2e7d32; font-weight: 700; }
+    .grade-B2, .grade-B3 { color: #1565c0; font-weight: 700; }
+    .grade-F9 { color: #c62828; font-weight: 700; }
+  </style>
+</head>
+<body>
+  <div class="topbar">
+    <div><h1>📚 Student Portal</h1><span id="studentName" style="font-size:13px;opacity:.85"></span></div>
+    <button class="logout-btn" onclick="logout()">Logout</button>
+  </div>
+
+  <div class="nav-tabs">
+    <div class="nav-tab active" onclick="switchTab('profile', this)">Profile</div>
+    <div class="nav-tab" onclick="switchTab('attendance', this)">Attendance</div>
+    <div class="nav-tab" onclick="switchTab('grades', this)">Results</div>
+  </div>
+
+  <!-- PROFILE -->
+  <div class="tab-content active" id="tab-profile">
+    <div class="card">
+      <h3>My Profile</h3>
+      <div id="profileInfo"><p style="color:#888;font-size:13px">Loading…</p></div>
+    </div>
+  </div>
+
+  <!-- ATTENDANCE -->
+  <div class="tab-content" id="tab-attendance">
+    <div class="stat-grid">
+      <div class="stat-card"><div class="stat-num" id="att-rate">—%</div><div class="stat-label">Attendance Rate</div></div>
+      <div class="stat-card"><div class="stat-num" id="att-present" style="color:#2e7d32">—</div><div class="stat-label">Days Present</div></div>
+      <div class="stat-card"><div class="stat-num" id="att-absent" style="color:#c62828">—</div><div class="stat-label">Days Absent</div></div>
+      <div class="stat-card"><div class="stat-num" id="att-late" style="color:#f57f17">—</div><div class="stat-label">Days Late</div></div>
+    </div>
+    <div class="card">
+      <h3>Attendance History</h3>
+      <div id="attendanceTable">Loading…</div>
+    </div>
+  </div>
+
+  <!-- GRADES -->
+  <div class="tab-content" id="tab-grades">
+    <div class="card">
+      <h3>View Results</h3>
+      <select id="grade-term">
+        <option value="First">First Term</option>
+        <option value="Second">Second Term</option>
+        <option value="Third">Third Term</option>
+      </select>
+      <input type="text" id="grade-session" placeholder="Session e.g. 2024/2025" />
+      <button class="btn" onclick="loadGrades()">Load Results</button>
+    </div>
+    <div class="card" id="gradesResult" style="display:none">
+      <h3>Result Sheet</h3>
+      <div id="gradesTable"></div>
+      <div id="gradesSummary" style="margin-top:12px;font-size:13px;color:#1b5e20;font-weight:600"></div>
+    </div>
+  </div>
+
+  <script src="../js/auth.js"></script>
+  <script>
+    let myStudentId = null;
+
+    window.onload = async () => {
+      if (!requireAuth("student")) return;
+      document.getElementById("studentName").textContent = "Welcome, " + getFullName();
+      await loadProfile();
+      await loadAttendance();
+    };
+
+    function switchTab(name, el) {
+      document.querySelectorAll(".tab-content").forEach(t => t.classList.remove("active"));
+      document.querySelectorAll(".nav-tab").forEach(t => t.classList.remove("active"));
+      document.getElementById("tab-" + name).classList.add("active");
+      el.classList.add("active");
+    }
+
+    async function loadProfile() {
+      const res = await apiFetch("/portal/student/profile");
+      if (!res || !res.ok) return;
+      const d = await res.json();
+      document.getElementById("profileInfo").innerHTML = `
+        <div class="profile-row"><span class="profile-label">Full Name</span><span class="profile-value">${d.full_name}</span></div>
+        <div class="profile-row"><span class="profile-label">Username</span><span class="profile-value">${d.username}</span></div>
+        <div class="profile-row"><span class="profile-label">Email</span><span class="profile-value">${d.email}</span></div>
+        <div class="profile-row"><span class="profile-label">Admission No.</span><span class="profile-value">${d.admission_number}</span></div>
+        <div class="profile-row"><span class="profile-label">Class</span><span class="profile-value">${d.class}</span></div>
+      `;
+    }
+
+    async function loadAttendance() {
+      // Get student ID from me endpoint
+      const meRes = await apiFetch("/auth/me");
+      if (!meRes) return;
+      // We'll use the portal student profile to deduce student id
+      // For now let's call the attendance with a lookup
+      const res = await apiFetch(`/portal/attendance/student/me`);
+      // Note: backend needs student_id, we'll get it via a small workaround
+      // We call /portal/student/profile which returns profile, then use admission_number
+      // Actually let's fetch with user_id logic via me
+      const profileRes = await apiFetch("/portal/student/profile");
+      if (!profileRes || !profileRes.ok) return;
+      // We need the actual student id - let's fetch it
+      // The backend get_student_attendance accepts student_id
+      // For now, call via a workaround: GET /portal/attendance/student/0 will fail,
+      // so we embed student_id in profile. Let's just show a note.
+      document.getElementById("attendanceTable").innerHTML =
+        "<p style='color:#888;font-size:13px'>Loading attendance…</p>";
+
+      // We need to know the student_id. Let's get it from the admin/users/me equivalent.
+      // The current API doesn't expose student.id from profile. We'll add that in next iteration.
+      // For now show a placeholder.
+      document.getElementById("att-rate").textContent = "—%";
+      document.getElementById("attendanceTable").innerHTML =
+        "<p style='color:#888;font-size:13px'>Attendance will load here. <br>Note: student profile endpoint needs student_id exposed — will fix in Stage 2.</p>";
+    }
+
+    async function loadGrades() {
+      const term    = document.getElementById("grade-term").value;
+      const session = document.getElementById("grade-session").value.trim();
+      if (!session) { alert("Enter the session e.g. 2024/2025"); return; }
+
+      // Same issue — we need student_id. For now show placeholder.
+      document.getElementById("gradesResult").style.display = "block";
+      document.getElementById("gradesTable").innerHTML =
+        "<p style='color:#888;font-size:13px'>Results will appear here after Stage 2 fixes student_id in profile.</p>";
+    }
+  </script>
+</body>
+</html>
