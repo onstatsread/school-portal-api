@@ -1,22 +1,22 @@
-from fastapi import FastAPI
+from fastapi import FastAPI, Depends
 from fastapi.middleware.cors import CORSMiddleware
-from database import engine, Base
+from sqlalchemy.orm import Session
+from database import engine, Base, get_db
 import models
 from routers import auth_router, admin_router, portal_router
+from auth import hash_password
 
-# Create all tables on startup
 Base.metadata.create_all(bind=engine)
 
 app = FastAPI(
     title="School Portal API",
-    description="Backend for secondary school portal — attendance, grades, 4 user roles",
+    description="Backend for secondary school portal",
     version="1.0.0"
 )
 
-# Allow GitHub Pages frontend to call this API
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],  # Change to your GitHub Pages URL in production
+    allow_origins=["*"],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -26,15 +26,9 @@ app.include_router(auth_router.router)
 app.include_router(admin_router.router)
 app.include_router(portal_router.router)
 
-
 @app.get("/")
 def root():
-    return {
-        "message": "School Portal API is running",
-        "version": "1.0.0",
-        "docs": "/docs"
-    }
-
+    return {"message": "School Portal API is running", "version": "1.0.0"}
 
 @app.get("/debug")
 def debug():
@@ -57,3 +51,25 @@ def debug():
         return {"status": "error", "detail": str(e)}
     finally:
         db.close()
+
+@app.post("/bootstrap-admin")
+def bootstrap_admin(db: Session = Depends(get_db)):
+    existing = db.query(models.User).filter(
+        models.User.role == "admin"
+    ).first()
+    if existing:
+        return {"message": "Admin already exists. This endpoint is disabled."}
+    admin = models.User(
+        full_name="School Admin",
+        email="admin@school.com",
+        username="admin",
+        password_hash=hash_password("admin1234"),
+        role="admin"
+    )
+    db.add(admin)
+    db.commit()
+    return {
+        "message": "Admin created!",
+        "username": "admin",
+        "password": "admin1234"
+    }
