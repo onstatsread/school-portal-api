@@ -55,7 +55,7 @@ def debug():
 @app.post("/bootstrap-admin")
 def bootstrap_admin(db: Session = Depends(get_db)):
     existing = db.query(models.User).filter(
-        models.User.role == "admin"
+        models.User.role == models.UserRole.admin
     ).first()
     if existing:
         return {"message": "Admin already exists. This endpoint is disabled."}
@@ -64,7 +64,7 @@ def bootstrap_admin(db: Session = Depends(get_db)):
         email="admin@school.com",
         username="admin",
         password_hash=hash_password("admin1234"),
-        role="admin"
+        role=models.UserRole.admin
     )
     db.add(admin)
     db.commit()
@@ -73,3 +73,4 @@ def bootstrap_admin(db: Session = Depends(get_db)):
         "username": "admin",
         "password": "admin1234"
     }
+    
