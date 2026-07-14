@@ -1,4 +1,3 @@
-
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 from typing import List
@@ -72,7 +71,7 @@ def create_student(data: schemas.StudentCreate, db: Session = Depends(get_db), _
 
     user = models.User(
         full_name=data.full_name, email=data.email, username=data.username,
-        password_hash=hash_password(data.password), role="student"
+        password_hash=hash_password(data.password), role=models.UserRole.student
     )
     db.add(user)
     db.commit()
@@ -99,7 +98,7 @@ def create_teacher(data: schemas.TeacherCreate, db: Session = Depends(get_db), _
 
     user = models.User(
         full_name=data.full_name, email=data.email, username=data.username,
-        password_hash=hash_password(data.password), role="teacher"
+        password_hash=hash_password(data.password), role=models.UserRole.teacher
     )
     db.add(user)
     db.commit()
@@ -122,7 +121,7 @@ def create_parent(data: schemas.ParentCreate, db: Session = Depends(get_db), _=D
 
     user = models.User(
         full_name=data.full_name, email=data.email, username=data.username,
-        password_hash=hash_password(data.password), role="parent"
+        password_hash=hash_password(data.password), role=models.UserRole.parent
     )
     db.add(user)
     db.commit()
@@ -162,8 +161,15 @@ def link_parent_student(data: schemas.LinkParentStudent, db: Session = Depends(g
 
 @router.post("/assign-teacher")
 def assign_teacher(data: schemas.AssignTeacher, db: Session = Depends(get_db), _=Depends(admin_only)):
+    # Find teacher profile by user_id
+    teacher = db.query(models.Teacher).filter(
+        models.Teacher.user_id == data.teacher_id
+    ).first()
+    if not teacher:
+        raise HTTPException(status_code=404, detail="Teacher profile not found")
+
     existing = db.query(models.TeacherSubjectClass).filter(
-        models.TeacherSubjectClass.teacher_id == data.teacher_id,
+        models.TeacherSubjectClass.teacher_id == teacher.id,
         models.TeacherSubjectClass.subject_id == data.subject_id,
         models.TeacherSubjectClass.class_id == data.class_id,
     ).first()
@@ -171,7 +177,7 @@ def assign_teacher(data: schemas.AssignTeacher, db: Session = Depends(get_db), _
         raise HTTPException(status_code=400, detail="Teacher already assigned to this subject/class")
 
     assignment = models.TeacherSubjectClass(
-        teacher_id=data.teacher_id,
+        teacher_id=teacher.id,
         subject_id=data.subject_id,
         class_id=data.class_id
     )
